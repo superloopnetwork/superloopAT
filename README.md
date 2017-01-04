@@ -16,12 +16,7 @@ Simply create a text file and name it 'device_list.txt' with the device informat
 
 There are a total of 6 fields seperated by the delimiter comma ','.
 
-[ip_address]  - ip address of the device
-[hostname]    - hostname of device
-[username]    - username to log into device
-[password]    - password to log into device (encrypted in base64 format)
-[vendor]      - vendor name in small letters; current support vendors are, 'cisco','arista','juniper','brocade'; if other vendors are used, the application will still accept it but will create an unknown object type.
-[type]        - type of device; 'router', 'switch', 'firewall', etc...
+[ip_address] - ip address of the device; [hostname] - hostname of device; [username] - username to log into device; [password] - password to log into device (encrypted in base64 format); [vendor] - vendor name in small letters; current support vendors are, 'cisco','arista','juniper','brocade'; if other vendors are used, the application will still accept it but will create an unknown object type; [type] - type of device; 'router', 'switch', 'firewall', etc...
 
 Here is an example:
 
