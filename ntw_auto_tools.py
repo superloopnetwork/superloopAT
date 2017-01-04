@@ -7,7 +7,7 @@ import base64
 import datetime
 import os
 
-ntw_device = []										# GLOBAL VARIABLE OF NTW_DEVICE OF TYPE LIST
+ntw_device = []							# GLOBAL VARIABLE OF NTW_DEVICE OF TYPE LIST
 
 class BasePlatform(object):
 
@@ -166,7 +166,7 @@ def add_devices():
  print("This is the view device function")
 
 
-def read_device_list():										# THIS FUNCTION READS THE DEVICE_LIST.TXT AND POPULATES THE LIST OF OBJECTS FOR EACH DEVICE
+def read_device_list():						# THIS FUNCTION READS THE DEVICE_LIST.TXT AND POPULATES THE LIST OF OBJECTS FOR EACH DEVICE
 
  f = open("device_list.txt")
  init_list = f.readlines()
