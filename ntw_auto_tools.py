@@ -1,5 +1,6 @@
 #!/usr/bin/env/python
 
+from netmiko import ConnectHandler
 import re
 import paramiko
 import time
@@ -132,7 +133,7 @@ class UnknownPlatform(object):
 ########################## FUNCTIONS ##########################
 
 def config_backup():
- #THIS FUNCTION CREATE RUNNING CONFIGURATION BACKUP
+#THIS FUNCTION CREATE RUNNING CONFIGURATION BACKUP
  
 	start_time = datetime.datetime.now()
 
