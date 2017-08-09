@@ -1,6 +1,7 @@
 #!/usr/bin/env/python
 
 from netmiko import ConnectHandler
+import threading 
 import re
 import paramiko
 import time
@@ -11,6 +12,8 @@ import os
 ntw_device = []
 # GLOBAL VARIABLE OF NTW_DEVICE OF TYPE LIST
 
+
+########################## BASE CLASS ###########################
 class BasePlatform(object):
 
 	def __init__(self,ip,hostname,username,password,vendor,type):
@@ -20,97 +23,107 @@ class BasePlatform(object):
    		self.password = password
    		self.vendor = vendor
    		self.type = type
-   		self.client = paramiko.SSHClient()
-   		self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-   		self.session = None
+		self.decrypt_password = base64.b64decode(self.password)
 
 	def connect(self):
-		password = base64.b64decode(self.password)
-		self.client.connect(self.ip,username=self.username,password=password,look_for_keys=False, allow_agent=False)
-		self.session = self.client.invoke_shell()
+		self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.decrypt_password,self.secret(),device_type=self.device_call())
 
-########################## CISCO CLASS ##########################
+	def secret(self):
+		enable_secret = ''
+		if (self.location() == 'wdstk'):
+			enable_secret = base64.b64decode(self.password)
+		elif (self.location() == 'ktch'):
+			enable_secret = base64.b64decode(self.password)
+
+		return enable_secret
+		
+	def location(self):
+		if (self.type == 'firewall'):
+			location_list = self.hostname.split('-')	
+			datacenter_location = location_list[3]
+
+		elif (self.type == 'switch' or self.type == 'router'):
+			location_list = self.hostname.split('.')	
+			datacenter_location = location_list[3]
+
+		return datacenter_location
+
+	def device_call(self):
+		if (self.type == 'router' or self.type == 'switch'):
+			device_attribute = 'cisco_ios'
+		
+		elif (self.type == 'firewall'):
+			device_attribute = 'cisco_asa'
+
+		return device_attribute
+		
+########################## CISCO CLASS ###########################
 
 class CiscoPlatform(BasePlatform):
 
-	def disable_paging(self):
-		self.session.send("terminal length 0\n")
-
 	def config_backup(self):
+
 		f = open("/configs/%s" % self.ip, "w")
-		self.session.send("\n")
-   		self.session.send("show run\n")
-   		time.sleep(1)
-   		output = self.session.recv(10000)
-   		print output
-   		f.write(output)
-   		f.close()
+		self.connect()
+		print('#' * 86)
+		output = self.net_connect.send_command_expect("show running-config")
+		print output
+		f.write(output)
+		f.close()
+		print('#' * 86)
+		self.net_connect.disconnect()
 
-	def show_interface_status(self):
-		self.session.send("\n")
-   		self.session.send("show interface status\n")
-   		time.sleep(1)
-   		output = self.session.recv(10000)
-   		print output
-   		f.write(output)
-   		f.close()
+	def syslog_config(self):
 
-	def show_ip_arp(self,ip_address):
-		remote_conn.send("\n")
-   		remote_conn.send("show ip arp | include %s\n" % ip_address)
-   		time.sleep(1)
+		if (self.type == 'router' or self.type == 'switch'):
+			commands = ['logging 10.50.30.2']
+		
+		elif (self.type == 'firewall'):
+			commands = ['logging host inside 10.50.30.2']
+
+		self.connect() 
+		print('#' * 86)
+		output = self.net_connect.send_config_set(commands)
+		print output
+		print('#' * 86)
+		self.net_connect.disconnect()
 
 ########################## ARISTA CLASS ##########################
 
 class AristaPlatform(object):
 
- 	def disable_paging(self):
-		self.session.send("terminal length 0\n")
-   		time.sleep(1)
+	
+    def show_config(self):
+		f = open("/configs/%s" % self.ip, "w")
+		output = self.net_connect.send_command("show running-config")
+		print output
+		f.write(output)
+		f.close()	
+	
 
- 	def config_backup(self):
-		f = open("%s" % self.ip, "w")
-   		self.session.send("\n")
-   		self.session.send("show run\n")
-   		time.sleep(3)
-   		output = self.session.recv(65535)
-   		print output
-   		f.write(output)
-   		f.close()
-
-########################## JUNIPER CLASS ##########################
+######################### JUNIPER CLASS ##########################
 
 class JuniperPlatform(object):
 
- 	def disable_paging(self):
-		self.session.send("set cli screen-length 0\n")
+	def config_backup(self):
+		f = open("/configs/%s" % self.ip, "w")
+	
+		self.connect()
+		print()
+		print('#' * 83)
+		output = self.net_connect.send_command_expect("show configuration | display set")
+		print output
+		f.write(output)
+		f.close()
+		print('#' * 83)
+		self.net_connect.disconnect()
+		print()
 
- 	def config_backup(self):
-		f = open("%s" % self.ip, "w")
-		self.session.send("\n")
-   		self.session.send("show configuration | display set\n")
-   		time.sleep(2)
-   		output = self.session.recv(65535)
-   		print output
-   		f.write(output)
-   		f.close()
-   
-########################## BROCADE CLASS ##########################
+######################### BROCADE CLASS ##########################
 
 class BrocadePlatform(object):
 
- 	def disable_paging(self):
-		time.sleep(2)
-		self.session.send("terminal length 0\n")
-
- 	def config_backup(self):
-		f = open("%s" % self.ip, "w")
-   		self.session.send("show run\n")
-   		time.sleep(26)
-   		output = self.session.recv(65535)
-   		print output
-   		f.write(output)
-   		f.close()
+	pass
 
 ########################## CITRIX CLASS ##########################
 
@@ -124,38 +137,20 @@ class UbuntuPlatform(object):
 
 	pass
 
-########################## UNKNOWN CLASS ##########################
+######################### UNKNOWN CLASS ##########################
 
 class UnknownPlatform(object):           
  
 	pass
 
-########################## FUNCTIONS ##########################
-
-def config_backup():
-#THIS FUNCTION CREATE RUNNING CONFIGURATION BACKUP
- 
-	start_time = datetime.datetime.now()
-
-	index = 0
-
-	for i in ntw_device:
-		ntw_device[index].connect()
-		ntw_device[index].disable_paging()
-		ntw_device[index].config_backup()
-   
-		index = index + 1
-
-	print("\n")
-	print("TIME ELAPSED: {}\n".format(datetime.datetime.now() - start_time))
+########################### FUNCTIONS ############################
 
 def view_devices():
-#THIS FUNCTION ALLOWS YOU TO VIEW THE LIST OF DEVICES IN THE INVENTORY 
 
 	index = 0
 	counter = 1
 
-	print("######################### NTW DEVICE LIST #########################\n")
+	print '#' * 31, 'NETWORK INVENTORY LIST', '#' * 31, '\n'
 	for i in ntw_device:
 		if (counter < 10):
 			print "%s.  %-19s %s" % (counter,ntw_device[index].ip,ntw_device[index].hostname)
@@ -165,12 +160,30 @@ def view_devices():
 		index = index + 1
    		counter = counter + 1
  	
-		print("\n")
+	print 
 
-def add_devices():
-#THIS FUNCTION ALLOWS YOU TO ADD DEVICES TO THE INVENTORY LIST
+
+def multithread_engine(redirect):
 	
-	print("This is the view device function")
+	start_time = datetime.datetime.now()
+
+	index = 0
+
+	for i in ntw_device:
+		my_thread = threading.Thread(target=getattr(ntw_device[index],redirect) , args=())
+		my_thread.start()
+
+		index = index + 1
+
+	main_thread = threading.currentThread()
+	for some_thread in threading.enumerate():
+		if some_thread != main_thread:
+			print(some_thread)
+			some_thread.join()
+
+	print("\n")
+	print("TIME ELAPSED: {}\n".format(datetime.datetime.now() - start_time))
+
 
 
 def read_device_list():
@@ -213,26 +226,88 @@ def read_device_list():
 			print "!%s IS A NON SUPPORTED DEVICE. UNKNOWN OBJECT HAS BEEN CREATED!" % list[1]
 
 
+############################ MENU SCREENS ############################
+
+def global_config():
+
+	selection = 0
+
+	while (selection !=4):
+		print '#' * 19, 'CONFIG CENTER > EXECUTE CHANGE > GLOBAL CHANGE', '#' * 19, '\n'
+		print '1. ADD/REMOVE CREDENTIALS'
+  		print '2. SNMP CONFIGURATION'
+  		print '3. SYSLOG CONFIGURATION'
+  		print '4. RETURN TO MAIN MENU'
+  		print '\n'
+  		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
+  		print("\n")
+
+		if selection == 3:
+			controller = 'syslog_config'
+			multithread_engine(controller)
+		else:
+			raw_input('Wrong option selection. Enter any key to try again..')
+
+def execute_change():
+
+	selection = 0
+
+	loop=True
+
+	while loop:
+		print '#' * 29, 'MAIN MENU > EXECUTE CHANGE', '#' * 29, '\n'
+		print '1. GLOBAL CONFIGURATION'
+  		print '2. SWITCHPORT CONFIGURATION'
+  		print '3. ROUTED PORT CONFIGURATION'
+  		print '4. NEW ARISTA TORS'
+  		print '5. RETURN TO MAIN MENU'
+  		print '\n'
+  		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
+  		print'\n'
+		
+		if selection==1:
+			global_config()
+
+		elif selection==5:
+			main()
+
+		else:
+			raw_input("! ! ! ! INVALID SELECTION. PLEASE TRY AGAIN ! ! ! !\n")
+
 def main():
 
 		os.system('clear')
-		mainmenu = {1: view_devices,2: config_backup}		
-		# THIS IS THE DICTIONARY OF THE MAINMENU
 
 		read_device_list()
+		
+		loop=True
                    
-		selection = 0
+		while loop:
+			print '#' * 30, 'NETWORK AUTOMATION TOOLS', '#' * 30, '\n'
+  			print '1. VIEW DEVICE LIST'
+  			print '2. CONFIGURATION BACKUP'
+  			print '3. EXECUTE CHANGE'
+  			print '4. EXIT TO SHELL'
+  			print '\n'
+  			selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
+  			print '\n' 
 
-		while (selection !=3):
-			print("##################### NETWORK AUTOMATION TOOLS ####################\n")
-  			print("1. VIEW DEVICE LIST")
-  			print("2. CONFIGURATION BACKUP")
-  			print("3. EXIT TO SHELL")
-  			print("\n")
-  			selection = int(raw_input("PLEASE MAKE YOUR SELECTION: "))
-  			print("\n") 
-  			if (selection >= 0) and (selection < 3):
-				mainmenu[selection]()
+			if selection==1:
+				view_devices()
 
-if __name__ == "__main__":
+			elif selection==2:
+				controller = 'config_backup'
+				multithread_engine(controller)
+			
+			elif selection==3:
+				controller = 'execute_change'
+				execute_change()
+
+			elif selection==4:
+				loop=False
+
+			else:
+				raw_input("! ! ! ! INVALID SELECTION. PLEASE TRY AGAIN ! ! ! !\n")
+
+if __name__ == '__main__':
 	main()
