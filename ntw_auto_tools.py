@@ -10,10 +10,11 @@ import datetime
 import os
 
 ntw_device = []
+process = True
 # GLOBAL VARIABLE OF NTW_DEVICE OF TYPE LIST
 
 
-########################## BASE CLASS ###########################
+########################## BASE CLASS ############################
 class BasePlatform(object):
 
 	def __init__(self,ip,hostname,username,password,vendor,type):
@@ -38,6 +39,7 @@ class BasePlatform(object):
 		return enable_secret
 		
 	def location(self):
+		datacenter_location = ''
 		if (self.type == 'firewall'):
 			location_list = self.hostname.split('-')	
 			datacenter_location = location_list[3]
@@ -49,6 +51,7 @@ class BasePlatform(object):
 		return datacenter_location
 
 	def device_call(self):
+		device_attribute = ''
 		if (self.type == 'router' or self.type == 'switch'):
 			device_attribute = 'cisco_ios'
 		
@@ -56,7 +59,8 @@ class BasePlatform(object):
 			device_attribute = 'cisco_asa'
 
 		return device_attribute
-		
+
+
 ########################## CISCO CLASS ###########################
 
 class CiscoPlatform(BasePlatform):
@@ -90,7 +94,7 @@ class CiscoPlatform(BasePlatform):
 
 ########################## ARISTA CLASS ##########################
 
-class AristaPlatform(object):
+class AristaPlatform(BasePlatform):
 
 	
     def show_config(self):
@@ -103,7 +107,7 @@ class AristaPlatform(object):
 
 ######################### JUNIPER CLASS ##########################
 
-class JuniperPlatform(object):
+class JuniperPlatform(BasePlatform):
 
 	def config_backup(self):
 		f = open("/configs/%s" % self.ip, "w")
@@ -121,25 +125,25 @@ class JuniperPlatform(object):
 
 ######################### BROCADE CLASS ##########################
 
-class BrocadePlatform(object):
+class BrocadePlatform(BasePlatform):
 
 	pass
 
 ########################## CITRIX CLASS ##########################
 
-class CitrixPlatform(object):
+class CitrixPlatform(BasePlatform):
 
 	pass
 
 ########################## UBUNTU CLASS ##########################
 
-class UbuntuPlatform(object):
+class UbuntuPlatform(BasePlatform):
 
 	pass
 
 ######################### UNKNOWN CLASS ##########################
 
-class UnknownPlatform(object):           
+class UnknownPlatform(BasePlatform): 
  
 	pass
 
@@ -162,6 +166,8 @@ def view_devices():
  	
 	print 
 
+
+####################### ENGINE FUNCTIONS ########################
 
 def multithread_engine(redirect):
 	
@@ -186,15 +192,15 @@ def multithread_engine(redirect):
 
 
 
-def read_device_list():
+def process_engine(database):
 # THIS FUNCTION READS THE DEVICE_LIST.TXT AND POPULATES THE LIST OF OBJECTS FOR EACH DEVICE
 
-	f = open("device_list.txt")
+	f = open(database)
 	init_list = f.readlines()
-
+	
 	for i in init_list:
-		strip_list = i.strip("\n")
-		list = strip_list.split(",")
+		strip_list = i.strip('\n')
+		list = strip_list.split(',')
 		
 		if (list[4] == 'cisco'):
 			device = CiscoPlatform(list[0],list[1],list[2],list[3],list[4],list[5]) 
@@ -228,6 +234,46 @@ def read_device_list():
 
 ############################ MENU SCREENS ############################
 
+def main():
+
+		os.system('clear')
+
+		global process		
+
+		if (process == True):
+			database = 'master_device_list'
+			process_engine(database)
+			process = False
+
+		loop=True
+                   
+		while loop:
+			print '#' * 30, 'NETWORK AUTOMATION TOOLS', '#' * 30, '\n'
+  			print '1. VIEW DEVICE LIST'
+  			print '2. CONFIGURATION BACKUP'
+  			print '3. EXECUTE CHANGE'
+  			print '4. EXIT TO SHELL'
+  			print '\n'
+  			selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
+  			print '\n' 
+
+			if selection == 1:
+				view_devices()
+
+			elif selection == 2:
+				controller = 'config_backup'
+				multithread_engine(controller)
+			
+			elif selection == 3:
+				controller = 'execute_change'
+				execute_change()
+
+			elif selection == 4:
+				loop = False
+
+			else:
+				raw_input("! ! ! ! INVALID SELECTION. PLEASE TRY AGAIN ! ! ! !\n")
+
 def global_config():
 
 	selection = 0
@@ -237,7 +283,7 @@ def global_config():
 		print '1. ADD/REMOVE CREDENTIALS'
   		print '2. SNMP CONFIGURATION'
   		print '3. SYSLOG CONFIGURATION'
-  		print '4. RETURN TO MAIN MENU'
+  		print '4. RETURN TO EXECUTE CHANGE MENU'
   		print '\n'
   		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
   		print("\n")
@@ -245,6 +291,8 @@ def global_config():
 		if selection == 3:
 			controller = 'syslog_config'
 			multithread_engine(controller)
+		elif selection == 4:
+			loop = False
 		else:
 			raw_input('Wrong option selection. Enter any key to try again..')
 
@@ -265,49 +313,14 @@ def execute_change():
   		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
   		print'\n'
 		
-		if selection==1:
+		if selection == 1:
 			global_config()
-
-		elif selection==5:
-			main()
+		elif selection == 5:
+			loop = False
 
 		else:
 			raw_input("! ! ! ! INVALID SELECTION. PLEASE TRY AGAIN ! ! ! !\n")
 
-def main():
-
-		os.system('clear')
-
-		read_device_list()
-		
-		loop=True
-                   
-		while loop:
-			print '#' * 30, 'NETWORK AUTOMATION TOOLS', '#' * 30, '\n'
-  			print '1. VIEW DEVICE LIST'
-  			print '2. CONFIGURATION BACKUP'
-  			print '3. EXECUTE CHANGE'
-  			print '4. EXIT TO SHELL'
-  			print '\n'
-  			selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
-  			print '\n' 
-
-			if selection==1:
-				view_devices()
-
-			elif selection==2:
-				controller = 'config_backup'
-				multithread_engine(controller)
-			
-			elif selection==3:
-				controller = 'execute_change'
-				execute_change()
-
-			elif selection==4:
-				loop=False
-
-			else:
-				raw_input("! ! ! ! INVALID SELECTION. PLEASE TRY AGAIN ! ! ! !\n")
 
 if __name__ == '__main__':
 	main()
