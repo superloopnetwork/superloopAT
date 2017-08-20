@@ -10,11 +10,12 @@ import datetime
 import os
 
 ntw_device = []
+switchport = []
 process = True
-# GLOBAL VARIABLE OF NTW_DEVICE OF TYPE LIST
+# GLOBAL VARIABLE OF NTW_DEVICE & SWITCHPORT OF TYPE LIST
 
 
-########################## BASE CLASS ############################
+######################### BASE CLASSES ###########################
 class BasePlatform(object):
 
 	def __init__(self,ip,hostname,username,password,vendor,type):
@@ -60,10 +61,33 @@ class BasePlatform(object):
 
 		return device_attribute
 
+class BaseInterface(object):
+
+	def __init__(self,switchip,interface,mode,vlan,description,state,vendor,type):  
+		self.switchip = switchip
+		self.interface = interface
+		self.mode = mode
+		self.vlan = vlan
+		self.description = description
+		self.state = state
+		self.vendor = vendor
+		self.type = type
+
+class Initialize(BasePlatform,BaseInterface):
+
+	def __init__(self,*arg):
+		if (len(arg) == 6):
+			ip,hostname,username,password,vendor,type = arg
+			BasePlatform.__init__(self,ip,hostname,username,password,vendor,type)
+		elif (len(arg) == 8):
+			switchip,interface,mode,vlan,description,state,vendor,type = arg
+			BaseInterface.__init__(self,switchip,interface,mode,vlan,description,state,vendor,type)
+		else:
+			raise ValueError('Inconsistent arguments number')
 
 ########################## CISCO CLASS ###########################
 
-class CiscoPlatform(BasePlatform):
+class CiscoPlatform(Initialize):
 
 	def config_backup(self):
 
@@ -92,9 +116,13 @@ class CiscoPlatform(BasePlatform):
 		print('#' * 86)
 		self.net_connect.disconnect()
 
+	def switchport_config(self):
+
+		pass	
+
 ########################## ARISTA CLASS ##########################
 
-class AristaPlatform(BasePlatform):
+class AristaPlatform(Initialize):
 
 	
     def show_config(self):
@@ -107,7 +135,7 @@ class AristaPlatform(BasePlatform):
 
 ######################### JUNIPER CLASS ##########################
 
-class JuniperPlatform(BasePlatform):
+class JuniperPlatform(Initialize):
 
 	def config_backup(self):
 		f = open("/configs/%s" % self.ip, "w")
@@ -125,25 +153,25 @@ class JuniperPlatform(BasePlatform):
 
 ######################### BROCADE CLASS ##########################
 
-class BrocadePlatform(BasePlatform):
+class BrocadePlatform(Initialize):
 
 	pass
 
 ########################## CITRIX CLASS ##########################
 
-class CitrixPlatform(BasePlatform):
+class CitrixPlatform(Initialize):
 
 	pass
 
 ########################## UBUNTU CLASS ##########################
 
-class UbuntuPlatform(BasePlatform):
+class UbuntuPlatform(Initialize):
 
 	pass
 
 ######################### UNKNOWN CLASS ##########################
 
-class UnknownPlatform(BasePlatform): 
+class UnknownPlatform(Initialize): 
  
 	pass
 
@@ -198,39 +226,74 @@ def process_engine(database):
 	f = open(database)
 	init_list = f.readlines()
 	
-	for i in init_list:
-		strip_list = i.strip('\n')
-		list = strip_list.split(',')
-		
-		if (list[4] == 'cisco'):
-			device = CiscoPlatform(list[0],list[1],list[2],list[3],list[4],list[5]) 
-			ntw_device.append(device)
+	if (database == 'master_device_list'):
 
-		elif (list[4] == 'arista'):
-			device = AristaPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device)
+		for i in init_list:
+			strip_list = i.strip('\n')
+			list = strip_list.split(',')
+			
+			if (list[4] == 'cisco'):
+				device = CiscoPlatform(list[0],list[1],list[2],list[3],list[4],list[5]) 
+				ntw_device.append(device)
+	
+			elif (list[4] == 'arista'):
+				device = AristaPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device)
+	
+			elif (list[4] == 'juniper'):
+				device = JuniperPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device)
+	
+			elif (list[4] == 'brocade'):
+				device = BrocadePlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device)
+	
+			elif (list[4] == 'citrix'):
+				device = CitrixPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device)
+	
+			elif (list[4] == 'ubuntu'):
+				device = UbuntuPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device)
+			else:
+				device = UnknownPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
+				ntw_device.append(device) 
+				print "!%s IS A NON SUPPORTED DEVICE. UNKNOWN OBJECT HAS BEEN CREATED!" % list[1]
+	
+	elif (database == 'switchport_interface_list'):
 
-		elif (list[4] == 'juniper'):
-			device = JuniperPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device)
+		for i in init_list:
+			strip_list = i.strip('\n')
+			list = strip_list.split(',')
 
-		elif (list[4] == 'brocade'):
-			device = BrocadePlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device)
-
-		elif (list[4] == 'citrix'):
-			device = CitrixPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device)
-
-		elif (list[4] == 'ubuntu'):
-			device = UbuntuPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device)
-
-		else:
-			device =UnknownPlatform(list[0],list[1],list[2],list[3],list[4],list[5])
-			ntw_device.append(device) 
-			print "!%s IS A NON SUPPORTED DEVICE. UNKNOWN OBJECT HAS BEEN CREATED!" % list[1]
-
+			
+			if (list[6] == 'cisco'):
+				interface = CiscoPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7]) 
+				switchport.append(interface)
+	
+			elif (list[6] == 'arista'):
+				interface = AristaPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface)
+	
+			elif (list[6] == 'juniper'):
+				interface = JuniperPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface)
+	
+			elif (list[6] == 'brocade'):
+				interface = BrocadePlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface)
+	
+			elif (list[6] == 'citrix'):
+				interface = CitrixPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface)
+	
+			elif (list[6] == 'ubuntu'):
+				interface = UbuntuPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface)
+			else:
+				interface = UnknownPlatform(list[0],list[1],list[2],list[3],list[4],list[5],list[6],list[7])
+				switchport.append(interface) 
+				print "!%s IS A NON SUPPORTED DEVICE. UNKNOWN OBJECT HAS BEEN CREATED!" % list[1]
 
 ############################ MENU SCREENS ############################
 
@@ -315,6 +378,11 @@ def execute_change():
 		
 		if selection == 1:
 			global_config()
+		elif selection == 2:
+			database = 'switchport_interface_list'
+			process_engine(database)
+			controller = 'switchport_config'
+			multithread_engine(controller)
 		elif selection == 5:
 			loop = False
 
