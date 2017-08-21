@@ -10,7 +10,7 @@ The supported vendors include the following:
 3. Juniper Networks
 4. Brocade Communications Systems
 
-Simply create a text file and name it 'device_list.txt' with the device information populated like so:
+Simply create a text file and name it 'master_device_list' with the device information populated like so:
 
 [ip_address],[hostname],[username],[password],[vendor],[type]
 
