@@ -18,14 +18,11 @@ process = True
 
 ######################### BASE CLASSES ###########################
 class BaseCredentials(object):
+
 	def __init__(self,username,password,secret):
-		self.username = username
-		self.password = password
-		self.secret = secret
-		self.port = 65500
-		self.username_decrypt = base64.b64decode(username)
-		self.password_decrypt = base64.b64decode(password)
-		self.secret_decrypt = base64.b64decode(secret)
+		self.username = base64.b64decode(username)
+		self.password = base64.b64decode(password)
+		self.secret = base64.b64decode(secret)
 
 class BasePlatform(object):
 
@@ -36,13 +33,10 @@ class BasePlatform(object):
    		self.password = password
    		self.vendor = vendor
    		self.type = type
-		self.decrypt_password = base64.b64decode(self.password)
+		self.password_decrypt= base64.b64decode(self.password)
 
-	def connect(self,change_type):
-		if(change_type == 'global'):
-			self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.decrypt_password,self.secret(),device_type=self.device_call())
-		elif(change_type == 'interface'):
-			self.net_connect = ConnectHandler(self.switchip,None,self.username_decrypt,self.password_decrypt,self.secret_decrypt,port=65500,device_type=self.device_call())
+	def connect(self):
+		self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.password_decrypt,self.secret(),device_type=self.device_call())
 			
 	def secret(self):
 		enable_secret = ''
@@ -87,17 +81,16 @@ class BaseInterface(object):
 		self.vendor = vendor
 		self.type = type
 	
-
+	def connect_interface(self):
+		index = 0
+		self.net_connect = ConnectHandler(self.switchip,None,credentials[index].username,credentials[index].password,credentials[index].secret,port=65500,device_type=self.device_call())
 
 ########################## INIT. CLASS ###########################
 
-class Initialize(BaseCredentials,BasePlatform,BaseInterface):
+class Initialize(BasePlatform,BaseInterface):
 
 	def __init__(self,*arg):
-		if (len(arg) == 3):
-			username,password,secret = arg
-			BaseCredentials.__init__(self,username,password,secret)
-		elif (len(arg) == 6):
+		if (len(arg) == 6):
 			ip,hostname,username,password,vendor,type = arg
 			BasePlatform.__init__(self,ip,hostname,username,password,vendor,type)
 		elif (len(arg) == 8):
@@ -114,7 +107,7 @@ class CiscoPlatform(Initialize):
 
 		change_type = 'global'
 		f = open("/configs/%s" % self.ip, "w")
-		self.connect(change_type)
+		self.connect()
 		print('#' * 86)
 		output = self.net_connect.send_command_expect("show running-config")
 		print output
@@ -125,14 +118,13 @@ class CiscoPlatform(Initialize):
 
 	def syslog_config(self):
 
-		change_type = 'global'
 		if (self.type == 'router' or self.type == 'switch'):
 			commands = ['logging 10.50.30.2']
 		
 		elif (self.type == 'firewall'):
 			commands = ['logging host inside 10.50.30.2']
 
-		self.connect(change_type) 
+		self.connect() 
 		print('#' * 86)
 		output = self.net_connect.send_config_set(commands)
 		print output
@@ -141,9 +133,25 @@ class CiscoPlatform(Initialize):
 
 	def switchport_config(self):
 
-		change_type = 'interface'	
-		self.connect(change_type)	
+		if (self.type == 'switch' and self.mode == 'access' and self.state == 'up'):
+			commands = ['interface %s' % self.interface,'switchport mode %s' % self.mode,'switchport access vlan %s' % self.vlan,'description %s' % self.description,'spanning-tree portfast','spanning-tree bpduguard enable','no shutdown']
+		elif (self.type == 'switch' and self.mode == 'access' and self.state == 'down'):
+			commands = ['interface %s' % self.interface,'switchport mode %s' % self.mode,'switchport access vlan %s' % self.vlan,'description %s' % self.description,'spanning-tree portfast','spanning-tree bpduguard enable','shutdown']
+		elif (self.type == 'switch' and self.mode == 'trunk' and self.vlan == 'all' and self.state == 'up'):
+			commands = ['interface %s' % self.interface,'switchport trunk encapsulation dot1q','switchport mode %s' % self.mode,'switchport trunk allowed vlan all','description %s' % self.description,'no shutdown']
+		elif (self.type == 'switch' and self.mode == 'trunk' and self.vlan == 'all' and self.state == 'down'):
+			commands = ['interface %s' % self.interface,'switchport trunk encapsulation dot1q','switchport mode %s' % self.mode,'switchport trunk allowed vlan all','description %s' % self.description,'shutdown']
+		elif (self.type == 'switch' and self.mode == 'trunk' and self.state == 'up'):
+			commands = ['interface %s' % self.interface,'switchport trunk encapsulation dot1q','switchport mode %s' % self.mode,'switchport trunk native vlan %s' % self.vlan,'description %s' % self.description,'no shutdown']
+		elif (self.type == 'switch' and self.mode == 'trunk' and self.state == 'down'):
+			commands = ['interface %s' % self.interface,'switchport trunk encapsulation dot1q','switchport mode %s' % self.mode,'switchport trunk native vlan %s' % self.vlan,'description %s' % self.description,'shutdown']
 
+		self.connect_interface()
+		print('#' * 86)
+		output = self.net_connect.send_config_set(commands)
+		print output
+		print('#' * 86)
+		self.net_connect.disconnect()
 
 
 ########################## ARISTA CLASS ##########################
@@ -201,7 +209,7 @@ class UnknownPlatform(Initialize):
  
 	pass
 
-########################### FUNCTIONS ############################
+###################### VIEW FUNCTIONS ############################
 
 def view_devices():
 
@@ -211,14 +219,45 @@ def view_devices():
 	print '#' * 31, 'NETWORK INVENTORY LIST', '#' * 31, '\n'
 	for i in ntw_device:
 		if (counter < 10):
-			print "%s.  %-19s %s" % (counter,ntw_device[index].ip,ntw_device[index].hostname)
+			print '%s.  %-19s %s' % (counter,ntw_device[index].ip,ntw_device[index].hostname)
 		if (counter >= 10):
-			print "%-1s. %-19s %s" % (counter,ntw_device[index].ip,ntw_device[index].hostname)
+			print '%-1s. %-19s %s' % (counter,ntw_device[index].ip,ntw_device[index].hostname)
    	
 		index = index + 1
    		counter = counter + 1
  	
 	print 
+
+def view_interfaces():
+
+	index = 0
+	counter = 1
+
+	print '#' * 30, 'INTERFACE CONFIGURATIONS', '#' * 30, '\n'
+	for i in switchport:
+		if (counter < 10):
+			print '%s.  %-19s %-28s %-13s %s' % (counter,switchport[index].switchip,switchport[index].interface,switchport[index].mode,switchport[index].vlan)
+		if (counter >= 10):
+			print '%-1s. %-19s %-28s %-13s %s' % (counter,switchport[index].switchip,switchport[index].interface,switchport[index].mode,switchport[index].vlan)
+   	
+		index = index + 1
+   		counter = counter + 1
+ 	
+	print 
+
+######################## FUNCTIONS ##############################
+
+def switchport_config(database):
+
+
+	global switchport
+	del switchport[:]
+	check = 'interface_list'
+	controller = 'switchport_config'
+
+	process_engine(database,check)
+	view_interfaces()
+	multithread_engine(switchport,controller)
 
 
 ####################### ENGINE FUNCTIONS ########################
@@ -256,7 +295,7 @@ def process_engine(database,check):
 			strip_list = i.strip('\n')
 			list = strip_list.split(',')
 
-			login = CiscoPlatform(list[0],list[1],list[2])
+			login = BaseCredentials(list[0],list[1],list[2])
 			credentials.append(login)
 			
 	if (check == 'device_list'):
@@ -415,11 +454,9 @@ def execute_change():
 		if selection == 1:
 			global_config()
 		elif selection == 2:
-			database = 'switchport_interface_list'
-			check = 'interface_list'
-			controller = 'switchport_config'
-			process_engine(database,check)
-			multithread_engine(switchport,controller)
+				database = raw_input('PLEASE INPUT THE CHANGE FILENAME (NETENG-XXXX): ')
+				print
+				switchport_config(database)
 		elif selection == 5:
 			loop = False
 
