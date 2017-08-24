@@ -11,11 +11,22 @@ import os
 
 ntw_device = []
 switchport = []
+credentials = []
 process = True
 # GLOBAL VARIABLE OF NTW_DEVICE & SWITCHPORT OF TYPE LIST
 
 
 ######################### BASE CLASSES ###########################
+class BaseCredentials(object):
+	def __init__(self,username,password,secret):
+		self.username = username
+		self.password = password
+		self.secret = secret
+		self.port = 65500
+		self.username_decrypt = base64.b64decode(username)
+		self.password_decrypt = base64.b64decode(password)
+		self.secret_decrypt = base64.b64decode(secret)
+
 class BasePlatform(object):
 
 	def __init__(self,ip,hostname,username,password,vendor,type):
@@ -27,9 +38,12 @@ class BasePlatform(object):
    		self.type = type
 		self.decrypt_password = base64.b64decode(self.password)
 
-	def connect(self):
-		self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.decrypt_password,self.secret(),device_type=self.device_call())
-
+	def connect(self,change_type):
+		if(change_type == 'global'):
+			self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.decrypt_password,self.secret(),device_type=self.device_call())
+		elif(change_type == 'interface'):
+			self.net_connect = ConnectHandler(self.switchip,None,self.username_decrypt,self.password_decrypt,self.secret_decrypt,port=65500,device_type=self.device_call())
+			
 	def secret(self):
 		enable_secret = ''
 		if (self.location() == 'wdstk'):
@@ -72,11 +86,18 @@ class BaseInterface(object):
 		self.state = state
 		self.vendor = vendor
 		self.type = type
+	
 
-class Initialize(BasePlatform,BaseInterface):
+
+########################## INIT. CLASS ###########################
+
+class Initialize(BaseCredentials,BasePlatform,BaseInterface):
 
 	def __init__(self,*arg):
-		if (len(arg) == 6):
+		if (len(arg) == 3):
+			username,password,secret = arg
+			BaseCredentials.__init__(self,username,password,secret)
+		elif (len(arg) == 6):
 			ip,hostname,username,password,vendor,type = arg
 			BasePlatform.__init__(self,ip,hostname,username,password,vendor,type)
 		elif (len(arg) == 8):
@@ -91,8 +112,9 @@ class CiscoPlatform(Initialize):
 
 	def config_backup(self):
 
+		change_type = 'global'
 		f = open("/configs/%s" % self.ip, "w")
-		self.connect()
+		self.connect(change_type)
 		print('#' * 86)
 		output = self.net_connect.send_command_expect("show running-config")
 		print output
@@ -103,13 +125,14 @@ class CiscoPlatform(Initialize):
 
 	def syslog_config(self):
 
+		change_type = 'global'
 		if (self.type == 'router' or self.type == 'switch'):
 			commands = ['logging 10.50.30.2']
 		
 		elif (self.type == 'firewall'):
 			commands = ['logging host inside 10.50.30.2']
 
-		self.connect() 
+		self.connect(change_type) 
 		print('#' * 86)
 		output = self.net_connect.send_config_set(commands)
 		print output
@@ -118,7 +141,10 @@ class CiscoPlatform(Initialize):
 
 	def switchport_config(self):
 
-		pass	
+		change_type = 'interface'	
+		self.connect(change_type)	
+
+
 
 ########################## ARISTA CLASS ##########################
 
@@ -197,14 +223,12 @@ def view_devices():
 
 ####################### ENGINE FUNCTIONS ########################
 
-def multithread_engine(redirect):
+def multithread_engine(object,redirect):
 	
 	start_time = datetime.datetime.now()
-
 	index = 0
-
-	for i in ntw_device:
-		my_thread = threading.Thread(target=getattr(ntw_device[index],redirect) , args=())
+	for i in object:
+		my_thread = threading.Thread(target=getattr(object[index],redirect) , args=())
 		my_thread.start()
 
 		index = index + 1
@@ -220,13 +244,22 @@ def multithread_engine(redirect):
 
 
 
-def process_engine(database):
-# THIS FUNCTION READS THE DEVICE_LIST.TXT AND POPULATES THE LIST OF OBJECTS FOR EACH DEVICE
+def process_engine(database,check):
+# THIS FUNCTION READS THE MASTER_DEVICE_LIST AND POPULATES THE LIST OF OBJECTS FOR EACH DEVICE
 
 	f = open(database)
 	init_list = f.readlines()
 	
-	if (database == 'master_device_list'):
+	if (check == 'credentials'):
+
+		for i in init_list:
+			strip_list = i.strip('\n')
+			list = strip_list.split(',')
+
+			login = CiscoPlatform(list[0],list[1],list[2])
+			credentials.append(login)
+			
+	if (check == 'device_list'):
 
 		for i in init_list:
 			strip_list = i.strip('\n')
@@ -260,7 +293,7 @@ def process_engine(database):
 				ntw_device.append(device) 
 				print "!%s IS A NON SUPPORTED DEVICE. UNKNOWN OBJECT HAS BEEN CREATED!" % list[1]
 	
-	elif (database == 'switchport_interface_list'):
+	elif (check == 'interface_list'):
 
 		for i in init_list:
 			strip_list = i.strip('\n')
@@ -305,7 +338,11 @@ def main():
 
 		if (process == True):
 			database = 'master_device_list'
-			process_engine(database)
+			check = 'device_list'
+			process_engine(database,check)
+			database = 'credentials'
+			check = 'credentials'
+			process_engine(database,check)
 			process = False
 
 		loop=True
@@ -325,10 +362,9 @@ def main():
 
 			elif selection == 2:
 				controller = 'config_backup'
-				multithread_engine(controller)
+				multithread_engine(ntw_device,controller)
 			
 			elif selection == 3:
-				controller = 'execute_change'
 				execute_change()
 
 			elif selection == 4:
@@ -353,7 +389,7 @@ def global_config():
 
 		if selection == 3:
 			controller = 'syslog_config'
-			multithread_engine(controller)
+			multithread_engine(ntw_device,controller)
 		elif selection == 4:
 			loop = False
 		else:
@@ -380,9 +416,10 @@ def execute_change():
 			global_config()
 		elif selection == 2:
 			database = 'switchport_interface_list'
-			process_engine(database)
+			check = 'interface_list'
 			controller = 'switchport_config'
-			multithread_engine(controller)
+			process_engine(database,check)
+			multithread_engine(switchport,controller)
 		elif selection == 5:
 			loop = False
 
