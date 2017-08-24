@@ -445,8 +445,7 @@ def execute_change():
 		print '1. GLOBAL CONFIGURATION'
   		print '2. SWITCHPORT CONFIGURATION'
   		print '3. ROUTED PORT CONFIGURATION'
-  		print '4. NEW ARISTA TORS'
-  		print '5. RETURN TO MAIN MENU'
+  		print '4. RETURN TO MAIN MENU'
   		print '\n'
   		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
   		print'\n'
@@ -457,7 +456,7 @@ def execute_change():
 				database = raw_input('PLEASE INPUT THE CHANGE FILENAME (NETENG-XXXX): ')
 				print
 				switchport_config(database)
-		elif selection == 5:
+		elif selection == 4:
 			loop = False
 
 		else:
