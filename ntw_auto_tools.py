@@ -3,7 +3,7 @@
 from netmiko import ConnectHandler
 import threading 
 import re
-import paramiko
+import getpass 
 import time
 import base64
 import datetime
@@ -17,13 +17,6 @@ process = True
 
 
 ######################### BASE CLASSES ###########################
-class BaseCredentials(object):
-
-	def __init__(self,username,password,secret):
-		self.username = base64.b64decode(username)
-		self.password = base64.b64decode(password)
-		self.secret = base64.b64decode(secret)
-
 class BasePlatform(object):
 
 	def __init__(self,ip,hostname,username,password,vendor,type):
@@ -81,9 +74,8 @@ class BaseInterface(object):
 		self.vendor = vendor
 		self.type = type
 	
-	def connect_interface(self):
-		index = 0
-		self.net_connect = ConnectHandler(self.switchip,None,credentials[index].username,credentials[index].password,credentials[index].secret,port=65500,device_type=self.device_call())
+	def connect_interface(self,credentials):
+		self.net_connect = ConnectHandler(self.switchip,None,credentials[0],credentials[1],credentials[1],port=65500,device_type=self.device_call())
 
 ########################## INIT. CLASS ###########################
 
@@ -103,7 +95,7 @@ class Initialize(BasePlatform,BaseInterface):
 
 class CiscoPlatform(Initialize):
 
-	def config_backup(self):
+	def config_backup(self,*args):
 
 		change_type = 'global'
 		f = open("/configs/%s" % self.ip, "w")
@@ -116,7 +108,8 @@ class CiscoPlatform(Initialize):
 		print('#' * 86)
 		self.net_connect.disconnect()
 
-	def syslog_config(self):
+	def syslog_config(self,*args):
+		
 
 		if (self.type == 'router' or self.type == 'switch'):
 			commands = ['logging 10.50.30.2']
@@ -131,7 +124,7 @@ class CiscoPlatform(Initialize):
 		print('#' * 86)
 		self.net_connect.disconnect()
 
-	def switchport_config(self):
+	def switchport_config(self,credentials,*args):
 
 		if (self.type == 'switch' and self.mode == 'access' and self.state == 'up'):
 			commands = ['interface %s' % self.interface,'switchport mode %s' % self.mode,'switchport access vlan %s' % self.vlan,'description %s' % self.description,'spanning-tree portfast','spanning-tree bpduguard enable','no shutdown']
@@ -146,7 +139,7 @@ class CiscoPlatform(Initialize):
 		elif (self.type == 'switch' and self.mode == 'trunk' and self.state == 'down'):
 			commands = ['interface %s' % self.interface,'switchport trunk encapsulation dot1q','switchport mode %s' % self.mode,'switchport trunk native vlan %s' % self.vlan,'description %s' % self.description,'shutdown']
 
-		self.connect_interface()
+		self.connect_interface(credentials)
 		print('#' * 86)
 		output = self.net_connect.send_config_set(commands)
 		print output
@@ -251,23 +244,33 @@ def switchport_config(database):
 
 
 	global switchport
+	global credentials
 	del switchport[:]
+	del credentials[:]
 	check = 'interface_list'
 	controller = 'switchport_config'
-
 	process_engine(database,check)
 	view_interfaces()
-	multithread_engine(switchport,controller)
+	username = raw_input('PLEASE ENTER YOUR USERNAME: ')
+	credentials.append(username)
+	password = getpass.getpass(prompt="PLEASE ENTER YOUR PASSWORD: ")
+	credentials.append(password)
+	multithread_engine(switchport,controller,credentials)
 
 
 ####################### ENGINE FUNCTIONS ########################
 
-def multithread_engine(object,redirect):
+def multithread_engine(object,redirect,credentials):
 	
 	start_time = datetime.datetime.now()
 	index = 0
+
+	if(object == ntw_device):
+		arguments = None
+	if(object == switchport):
+		arguments = credentials
 	for i in object:
-		my_thread = threading.Thread(target=getattr(object[index],redirect) , args=())
+		my_thread = threading.Thread(target=getattr(object[index],redirect) , args=(arguments,))
 		my_thread.start()
 
 		index = index + 1
@@ -289,15 +292,6 @@ def process_engine(database,check):
 	f = open(database)
 	init_list = f.readlines()
 	
-	if (check == 'credentials'):
-
-		for i in init_list:
-			strip_list = i.strip('\n')
-			list = strip_list.split(',')
-
-			login = BaseCredentials(list[0],list[1],list[2])
-			credentials.append(login)
-			
 	if (check == 'device_list'):
 
 		for i in init_list:
@@ -379,9 +373,6 @@ def main():
 			database = 'master_device_list'
 			check = 'device_list'
 			process_engine(database,check)
-			database = 'credentials'
-			check = 'credentials'
-			process_engine(database,check)
 			process = False
 
 		loop=True
@@ -401,7 +392,7 @@ def main():
 
 			elif selection == 2:
 				controller = 'config_backup'
-				multithread_engine(ntw_device,controller)
+				multithread_engine(ntw_device,controller,credentials)
 			
 			elif selection == 3:
 				execute_change()
