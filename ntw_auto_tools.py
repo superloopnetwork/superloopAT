@@ -419,7 +419,7 @@ def global_config():
 
 		if selection == 3:
 			controller = 'syslog_config'
-			multithread_engine(ntw_device,controller)
+			multithread_engine(ntw_device,controller,credentials)
 		elif selection == 4:
 			loop = False
 		else:
@@ -444,7 +444,7 @@ def execute_change():
 		if selection == 1:
 			global_config()
 		elif selection == 2:
-				database = raw_input('PLEASE INPUT THE CHANGE FILENAME (NETENG-XXXX): ')
+				database = raw_input('PLEASE INPUT THE FILENAME TO IMPORT: ')
 				print
 				switchport_config(database)
 		elif selection == 4:
