@@ -1,6 +1,8 @@
 #!/usr/bin/env/python
 
 from netmiko import ConnectHandler
+from view import view_devices
+from view import view_interfaces
 import threading 
 import re
 import getpass 
@@ -76,6 +78,9 @@ class BaseInterface(object):
 	
 	def connect_interface(self,credentials):
 		self.net_connect = ConnectHandler(self.switchip,None,credentials[0],credentials[1],credentials[1],port=65500,device_type=self.device_call())
+
+	def check_interface_status(self):
+		print 'hello world'
 
 ########################## INIT. CLASS ###########################
 
@@ -202,41 +207,6 @@ class UnknownPlatform(Initialize):
  
 	pass
 
-###################### VIEW FUNCTIONS ############################
-
-def view_devices():
-
-	index = 0
-	counter = 1
-
-	print '#' * 31, 'NETWORK INVENTORY LIST', '#' * 31, '\n'
-	for i in ntw_device:
-		if (counter < 10):
-			print '%s.  %-19s %s' % (counter,ntw_device[index].ip,ntw_device[index].hostname)
-		if (counter >= 10):
-			print '%-1s. %-19s %s' % (counter,ntw_device[index].ip,ntw_device[index].hostname)
-   	
-		index = index + 1
-   		counter = counter + 1
- 	
-	print 
-
-def view_interfaces():
-
-	index = 0
-	counter = 1
-
-	print '#' * 30, 'INTERFACE CONFIGURATIONS', '#' * 30, '\n'
-	for i in switchport:
-		if (counter < 10):
-			print '%s.  %-19s %-28s %-13s %s' % (counter,switchport[index].switchip,switchport[index].interface,switchport[index].mode,switchport[index].vlan)
-		if (counter >= 10):
-			print '%-1s. %-19s %-28s %-13s %s' % (counter,switchport[index].switchip,switchport[index].interface,switchport[index].mode,switchport[index].vlan)
-   	
-		index = index + 1
-   		counter = counter + 1
- 	
-	print 
 
 ######################## FUNCTIONS ##############################
 
@@ -250,7 +220,8 @@ def switchport_config(database):
 	check = 'interface_list'
 	controller = 'switchport_config'
 	process_engine(database,check)
-	view_interfaces()
+	view_interfaces(switchport)
+#	switchport.check_interface_status()
 	username = raw_input('PLEASE ENTER YOUR USERNAME: ')
 	credentials.append(username)
 	password = getpass.getpass(prompt="PLEASE ENTER YOUR PASSWORD: ")
@@ -388,7 +359,7 @@ def main():
   			print '\n' 
 
 			if selection == 1:
-				view_devices()
+				view_devices(ntw_device)
 
 			elif selection == 2:
 				controller = 'config_backup'
