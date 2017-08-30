@@ -79,8 +79,25 @@ class BaseInterface(object):
 	def connect_interface(self,credentials):
 		self.net_connect = ConnectHandler(self.switchip,None,credentials[0],credentials[1],credentials[1],port=65500,device_type=self.device_call())
 
-	def check_interface_status(self):
-		print 'hello world'
+	def cisco_interface_notation(self):
+		notation = self.interface.split('GigabitEthernet')[1]
+		
+		return notation
+		
+	def cisco_check_interface_status(self):
+		interface_status = self.net_connect.send_command('show interface status | include %s' % self.cisco_interface_notation())
+		list = interface_status.split('\n')[0]
+		list = list.split()
+		for element in list:
+			if element == 'disabled':
+				execute = True
+				break
+			elif element == 'notconnect':
+				execute = False
+			else:
+				execute = False
+
+		return execute
 
 ########################## INIT. CLASS ###########################
 
@@ -146,8 +163,11 @@ class CiscoPlatform(Initialize):
 
 		self.connect_interface(credentials)
 		print('#' * 86)
-		output = self.net_connect.send_config_set(commands)
-		print output
+		if self.cisco_check_interface_status():
+			output = self.net_connect.send_config_set(commands)
+			print output
+		else:
+			print ('!! INTERFACE %s ON HOST %s IS NOT ADMINISTRATIVELY SHUTDOWN. CONFIGURATIONS WILL NOT BE APPLIED !!' % (self.interface,self.switchip))
 		print('#' * 86)
 		self.net_connect.disconnect()
 
