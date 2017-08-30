@@ -83,9 +83,29 @@ class BaseInterface(object):
 		notation = self.interface.split('GigabitEthernet')[1]
 		
 		return notation
+
+	def arista_interface_notation(self):
+		notation = self.interface.split('Ethernet')[1]
+		
+		return notation
 		
 	def cisco_check_interface_status(self):
 		interface_status = self.net_connect.send_command('show interface status | include %s' % self.cisco_interface_notation())
+		list = interface_status.split('\n')[0]
+		list = list.split()
+		for element in list:
+			if element == 'disabled':
+				execute = True
+				break
+			elif element == 'notconnect':
+				execute = False
+			else:
+				execute = False
+
+		return execute
+
+	def arista_check_interface_status(self):
+		interface_status = self.net_connect.send_command('show interface status | include Et%s' % self.arista_interface_notation())
 		list = interface_status.split('\n')[0]
 		list = list.split()
 		for element in list:
@@ -232,7 +252,6 @@ class UnknownPlatform(Initialize):
 
 def switchport_config(database):
 
-
 	global switchport
 	global credentials
 	del switchport[:]
@@ -241,13 +260,11 @@ def switchport_config(database):
 	controller = 'switchport_config'
 	process_engine(database,check)
 	view_interfaces(switchport)
-#	switchport.check_interface_status()
 	username = raw_input('PLEASE ENTER YOUR USERNAME: ')
 	credentials.append(username)
 	password = getpass.getpass(prompt="PLEASE ENTER YOUR PASSWORD: ")
 	credentials.append(password)
 	multithread_engine(switchport,controller,credentials)
-
 
 ####################### ENGINE FUNCTIONS ########################
 
