@@ -1,5 +1,5 @@
-
 Network Automation Tools
+
 Disclaimer: code may need to be modified to according to environment. Free feel to contact me for any assistance - wailit@gmail.com
 
 This Python application is in progress but currently provides network automation of running configuration backups from common vendors. 
