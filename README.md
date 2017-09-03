@@ -1,4 +1,4 @@
-# ntwautotools
+tools
 Network Automation Tools
 
 This Python application is in progress but currently provides network automation of running configuration backups from common vendors. 
@@ -22,7 +22,7 @@ Here is an example:
 
 10.20.30.40,core.rt.superloop.sfo,admin,YmxhaGJsYWhibGFo,cisco,router
 
-Execute the application via 'python ntw_auto_tools.py'. Hit '1' to view the loaded device/object in memory and '2' to perform running config backup.
+Execute the application via 'python main.py'. Hit '1' to view the loaded device/object in memory and '2' to perform running config backup.
 
 Configurations are backed up in the /configs/ directory.
 
