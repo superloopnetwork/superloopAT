@@ -15,7 +15,7 @@ Simply create a text file and name it 'master_device_list' with the device infor
 
 [ip_address],[hostname],[username],[password],[vendor],[type]
 
-There are a total of 6 fields seperated by the delimiter comma ','.
+There are a total of 6 fields seperated by the delimiter comma ','. Do not leave any new lines between entries and end of file.
 
 [ip_address] - ip address of the device; [hostname] - hostname of device; [username] - username to log into device; [password] - password to log into device (encrypted in base64 format); [vendor] - vendor name in small letters; current support vendors are, 'cisco','arista','juniper','brocade'; if other vendors are used, the application will still accept it but will create an unknown object type; [type] - type of device; 'router', 'switch', 'firewall', etc...
 
@@ -33,13 +33,16 @@ Simply create a text file and name it whatever you wish with the device informat
 
 [switch_ip],[interface],[mode],[vlan],[description],[state],[vendor],[type]
 
-There are a total of 8 fields seperated by the delimiter comma ','.
+There are a total of 8 fields seperated by the delimiter comma ','. Do not leave any new lines between entries and end of file.
 
 [switch_ip] - ip address of the device; [interface] - switchport interface you are configuring. you must type out the full interface name and not it's abbreviated form. for example, 'GigabitEthernet1/0/1' instead of 'Gi1/0/1'; [mode] - mode of switchport, either 'access' or 'trunk'; [vlan] - vlan number that you want the access port to be on. if it's configured as trunk, a single number will yeild a native vlan, if you want to trunk all vlans, set the value to 'all'; [description] - description of switchport; [state] - the state of the switchport you would like it to be in. 'up' or 'down'. [vendor] - current support vendors are, 'cisco','arista','juniper','brocade'; if other vendors are used, the application will still accept it but will create an unknown object type; [type] - type of device; 'router', 'switch', 'firewall', etc...
 
 10.20.30.40,GigabitEthernet1/0/1,access,50,CONNEX: THIS IS AN ACCESS PORT ON VLAN 50 WITH NO SHUTDOWN,up,cisco,switch
+
 10.20.30.40,GigabitEthernet1/0/2,access,30,CONNEX: THIS IS AN ACCESS PORT ON VLAN 30 WITH SHUTDOWN,down,cisco,switch
+
 10.20.30.40,GigabitEthernet1/0/23,trunk,all,CONNEX: THIS IS A TRUNK PORT TRUNKING ALL VLANS WITH NO SHUTDOWN,up,cisco,switch
+
 10.20.30.40,GigabitEthernet1/0/24,trunk,80,CONNEX: THIS IS A TRUNK PORT WITH VLAN 80 AS NATIVE WITH SHUTDOWN,down,cisco,switch
 
 Enjoy!
