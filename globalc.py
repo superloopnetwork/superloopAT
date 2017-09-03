@@ -1,4 +1,4 @@
-from engines import multithread_engine
+from multithread import multithread_engine
 import initialize
 
 def global_config():

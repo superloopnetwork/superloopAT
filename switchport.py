@@ -1,8 +1,8 @@
 ######################## FUNCTIONS ##############################
 
 from display import view_interfaces
-from engines import parse_engine
-from engines import multithread_engine
+from parser import parse_engine
+from multithread import multithread_engine
 import initialize
 import getpass
 

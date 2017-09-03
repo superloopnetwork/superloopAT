@@ -2,8 +2,8 @@
 
 from display import view_devices
 from display import view_interfaces
-from engines import parse_engine
-from engines import multithread_engine
+from parser import parse_engine
+from multithread import multithread_engine
 from execute import execute_change
 import initialize
 import os
