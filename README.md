@@ -1,4 +1,3 @@
-tools
 Network Automation Tools
 
 This Python application is in progress but currently provides network automation of running configuration backups from common vendors. 
@@ -26,6 +25,6 @@ Execute the application via 'python main.py'. Hit '1' to view the loaded device/
 
 Configurations are backed up in the /configs/ directory.
 
-More automation features to come...
+Switchport interface configuration has now been implemented. This feature allows you to store the configuration of switchports in a file and easily mass deploy them via the multithread engine. The application is intelligent enough to prevent any human error in overwriting any live ports in the environment; if the switchport status is 'up' or 'notconnected', configs will not be deployed on those port(s). When the switchport status is in a 'down' state, in other words - administratively down, only then will it be deemed safe and the configs be deployed. 
 
 Enjoy!
