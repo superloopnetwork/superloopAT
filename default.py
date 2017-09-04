@@ -8,13 +8,9 @@ import initialize
 import getpass
 
 
-def switchport_config(database):
+def default_interface(database):
 
-	del initialize.switchport[:]
 	del initialize.credentials[:]
-	check = 'interface_list'
-	controller = 'switchport_config'
-	parse_engine(database,check)
-	view_interfaces(initialize.switchport)
+	controller = 'default_interface'
 	initialize.credentials = credentials()
-	multithread_engine(initialize.switchport,controller,initialize.credentials)
+	multithread_engine(initialize.ntw_device,controller,credentials)
