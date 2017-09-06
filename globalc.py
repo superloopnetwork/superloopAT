@@ -10,7 +10,8 @@ def global_config():
 		print '1. ADD/REMOVE CREDENTIALS'
   		print '2. SNMP CONFIGURATION'
   		print '3. SYSLOG CONFIGURATION'
-  		print '4. RETURN TO EXECUTE CHANGE MENU'
+		print
+  		print '99. RETURN TO EXECUTE CHANGE MENU'
   		print '\n'
   		selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
   		print("\n")
@@ -18,7 +19,7 @@ def global_config():
 		if selection == 3:
 			controller = 'syslog_config'
 			multithread_engine(initialize.ntw_device,controller,initialize.credentials)
-		elif selection == 4:
+		elif selection == 99:
 			loop = False
 		else:
 			raw_input('Wrong option selection. Enter any key to try again..')

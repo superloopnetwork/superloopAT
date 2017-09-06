@@ -33,7 +33,8 @@ def main():
   			print '1. VIEW DEVICE LIST'
   			print '2. CONFIGURATION BACKUP'
   			print '3. EXECUTE CHANGE'
-  			print '4. EXIT TO SHELL'
+			print
+  			print '99. EXIT TO SHELL'
   			print '\n'
   			selection = int(raw_input('PLEASE MAKE YOUR SELECTION: '))
   			print '\n' 
@@ -48,7 +49,7 @@ def main():
 			elif selection == 3:
 				execute_change()
 
-			elif selection == 4:
+			elif selection == 99:
 				loop = False
 
 			else:
