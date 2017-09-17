@@ -5,7 +5,9 @@ def global_config():
 
 	selection = 0
 
-	while (selection !=4):
+	loop = True
+
+	while loop:
 		print '#' * 19, 'CONFIG CENTER > EXECUTE CHANGE > GLOBAL CHANGE', '#' * 19, '\n'
 		print '1. ADD/REMOVE CREDENTIALS'
   		print '2. SNMP CONFIGURATION'
