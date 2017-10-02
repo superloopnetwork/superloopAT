@@ -5,6 +5,7 @@ from display import view_interfaces
 from parser import parse_engine
 from multithread import multithread_engine
 from execute import execute_change
+from config import config_backup
 import initialize
 import os
 
@@ -17,7 +18,7 @@ parse = True
 def main():
 
 		os.system('clear')
-		initialize.variable()
+		initialize.variables()
 		global parse		
 
 		if (parse == True):
@@ -43,9 +44,7 @@ def main():
 				view_devices(initialize.ntw_device)
 
 			elif selection == 2:
-				controller = 'config_backup'
-				multithread_engine(initialize.ntw_device,controller,initialize.credentials)
-			
+				config_backup()	
 			elif selection == 3:
 				execute_change()
 

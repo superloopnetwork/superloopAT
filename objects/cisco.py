@@ -18,7 +18,6 @@ class CiscoPlatform(Initialize):
 		self.net_connect.disconnect()
 
 	def syslog_config(self,*args):
-		
 
 		if (self.type == 'router' or self.type == 'switch'):
 			commands = ['logging 10.50.30.2']
@@ -58,3 +57,57 @@ class CiscoPlatform(Initialize):
 		print('#' * 86)
 		self.net_connect.disconnect()
 
+	def default_interface(self,*args):
+
+		commands = []
+
+		if (self.type == 'switch'):
+			self.connect()
+			output = self.net_connect.send_command('show interface status | i notconnect')
+			output = output.split('\n')
+
+			for line in output:
+				line = line.split()
+				interface = line[0]
+				for element in line:
+					if (element == 'notconnect'):
+						commands.append('default interface %s' % interface)
+						commands.append('interface %s' % interface)
+						commands.append('shutdown')
+						commands.append('exit')
+
+			print('#' * 86)
+			output = self.net_connect.send_config_set(commands)
+			print output
+			print('#' * 86)
+			self.net_connect.disconnect()
+
+	def add_credentials(self,credentials,*args):
+
+		if (self.type == 'router' or self.type == 'switch'):
+			commands = ['username %s privilege 15 password %s' % (credentials[0],credentials[1])]
+		elif (self.type == 'firewall'):
+			commands = ['username %s password %s privilege 15' % (credentials[0],credentials[1])]
+
+		self.connect()
+		print('#' * 86)
+		output = self.net_connect.enable()
+		output = self.net_connect.send_config_set(commands)
+		print output
+		print('#' * 86)
+		self.net_connect.disconnect()
+
+	def rm_credentials(self,credentials,*args):
+
+		if (self.type == 'router'):
+			commands = ['no username %s' % credentials[0],'\r']
+		elif (self.type == 'switch' or self.type == 'firewall'):
+			commands = ['no username %s' % credentials[0]]
+
+		self.connect()
+		print('#' * 86)
+		output = self.net_connect.enable()
+		output = self.net_connect.send_config_set(commands)
+		print output
+		print('#' * 86)
+		self.net_connect.disconnect()

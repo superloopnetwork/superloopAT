@@ -21,9 +21,7 @@ def execute_change():
 		if selection == 1:
 			global_config()
 		elif selection == 2:
-				database = raw_input('PLEASE INPUT THE FILENAME TO IMPORT: ')
-				print
-				switchport_config(database)
+				switchport_config()
 		elif selection == 99:
 			loop = False
 

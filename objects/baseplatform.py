@@ -16,7 +16,10 @@ class BasePlatform(object):
 		self.password_decrypt= base64.b64decode(self.password)
 
 	def connect(self):
-		self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.password_decrypt,self.secret(),device_type=self.device_call())
+		if (self.type == 'switch'):
+			self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.password_decrypt,self.secret(),port=65500,device_type=self.device_call())
+		else:
+			self.net_connect = ConnectHandler(self.ip,self.hostname,self.username,self.password_decrypt,self.secret(),device_type=self.device_call())
 			
 	def secret(self):
 		enable_secret = ''

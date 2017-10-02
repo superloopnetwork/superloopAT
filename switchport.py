@@ -8,8 +8,9 @@ import initialize
 import getpass
 
 
-def switchport_config(database):
+def switchport_config():
 
+	database = raw_input('PLEASE INPUT THE FILENAME TO IMPORT: ')
 	del initialize.switchport[:]
 	del initialize.credentials[:]
 	check = 'interface_list'
@@ -17,4 +18,5 @@ def switchport_config(database):
 	parse_engine(database,check)
 	view_interfaces(initialize.switchport)
 	initialize.credentials = credentials()
+	print
 	multithread_engine(initialize.switchport,controller,initialize.credentials)
