@@ -11,7 +11,7 @@ def multithread_engine(object,redirect,credentials):
 	index = 0
 
 	if(object == initialize.ntw_device):
-		arguments = None
+		arguments = credentials 
 	if(object == initialize.switchport):
 		arguments = credentials
 	for i in object:
