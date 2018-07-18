@@ -1,5 +1,7 @@
 ####################### ENGINE FUNCTIONS ########################
 
+### AN OBJECT IS CREATED FOR EACH NETWORKING DEVICE
+
 import initialize
 import threading
 import time
