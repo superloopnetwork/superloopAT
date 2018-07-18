@@ -20,6 +20,7 @@ def view_interfaces(switchport):
 	index = 0
 	counter = 1
 	
+	print
 	print '#' * 30, 'INTERFACE CONFIGURATIONS', '#' * 30, '\n'
 	for i in switchport:
 		if (counter < 10):
